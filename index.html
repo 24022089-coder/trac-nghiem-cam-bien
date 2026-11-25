@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trắc nghiệm Chương 6: Cảm biến (30 câu · 10s/câu)</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .timer-bar { transition: width 0.25s linear, background-color 0.25s ease; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+    <!-- Header -->
+    <header class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div>
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-1.5">
+          <span>Chương 6 · Cảm biến</span>
+          <span>•</span>
+          <span>30 câu · 10 giây/câu</span>
+        </div>
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+          Kiểm tra nhanh Cảm biến
+        </h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnNavHome" type="button" class="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 transition">
+          Trang vào thi
+        </button>
+        <button id="btnNavHistory" type="button" class="px-3 py-2 text-sm font-medium rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition">
+          Bảng điểm đã thi (<span id="historyCountBadge">0</span>)
+        </button>
+      </div>
+    </header>
+
+    <!-- View 1: Entry Form -->
+    <section id="viewEntry" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-8">
+      <div class="max-w-xl mx-auto">
+        <h2 class="text-lg sm:text-xl font-bold text-slate-900 mb-1">Nhập thông tin trước khi làm bài</h2>
+        <p class="text-sm text-slate-600 mb-6">
+          Mỗi câu có đúng <strong>10 giây</strong> để trả lời. Điểm và thời gian làm bài sẽ được tự động lưu vào bảng điểm.
+        </p>
+
+        <form id="entryForm" class="space-y-4" novalidate>
+          <div>
+            <label for="inputGroup" class="block text-sm font-semibold text-slate-700 mb-1.5">
+              Tên nhóm <span class="text-rose-600">*</span>
+            </label>
+            <input
+              id="inputGroup"
+              type="text"
+              placeholder="Ví dụ: Nhóm 3"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
+              required
+            />
+          </div>
+
+          <div>
+            <label for="inputName" class="block text-sm font-semibold text-slate-700 mb-1.5">
+              Tên người làm <span class="text-rose-600">*</span>
+            </label>
+            <input
+              id="inputName"
+              type="text"
+              placeholder="Ví dụ: Nguyễn Văn A"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
+              required
+            />
+          </div>
+
+          <div id="entryError" class="hidden rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-sm text-rose-700 font-medium"></div>
+
+          <div class="grid grid-cols-3 gap-3 pt-2">
+            <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
+              <div class="text-lg font-extrabold text-slate-900">30</div>
+              <div class="text-xs text-slate-500">Câu hỏi</div>
+            </div>
+            <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
+              <div class="text-lg font-extrabold text-amber-600">10s</div>
+              <div class="text-xs text-slate-500">Mỗi câu</div>
+            </div>
+            <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
+              <div class="text-lg font-extrabold text-emerald-600">Tự động</div>
+              <div class="text-xs text-slate-500">Lưu điểm</div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full mt-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-base shadow-sm transition cursor-pointer"
+          >
+            Bắt đầu làm bài (30 câu)
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- View 2: Quiz -->
+    <section id="viewQuiz" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7">
+      <!-- Top info bar -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+          <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-semibold" id="quizGroupTag">Nhóm: -</span>
+          <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-semibold" id="quizNameTag">Thí sinh: -</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-semibold text-slate-600" id="quizProgressText">Câu 1 / 30</span>
+          <div id="timerPill" class="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-extrabold text-sm tabular-nums">
+            10s
+          </div>
+        </div>
+      </div>
+
+      <!-- Countdown Progress Bar -->
+      <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-3 mb-5">
+        <div id="timerBar" class="timer-bar h-full bg-emerald-500 rounded-full" style="width: 100%"></div>
+      </div>
+
+      <!-- Category tag -->
+      <div class="mb-2">
+        <span id="questionCategory" class="text-xs font-semibold uppercase tracking-wider text-indigo-600"></span>
+      </div>
+
+      <!-- Question text -->
+      <h2 id="questionText" class="text-base sm:text-lg font-bold text-slate-900 leading-relaxed mb-5"></h2>
+
+      <!-- Options -->
+      <div id="optionsContainer" class="space-y-2.5"></div>
+
+      <!-- Instant Feedback Banner -->
+      <div id="feedbackBox" class="hidden mt-4 rounded-xl p-3.5 text-sm border"></div>
+
+      <!-- Action Row -->
+      <div class="mt-5 flex items-center justify-between gap-3">
+        <div class="text-xs text-slate-500">
+          Điểm hiện tại: <strong id="liveScoreText" class="text-slate-800">0</strong>
+        </div>
+        <button id="btnNextQuestion" type="button" class="hidden px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition">
+          Câu tiếp theo →
+        </button>
+      </div>
+    </section>
+
+    <!-- View 3: Result & Review -->
+    <section id="viewResult" class="hidden space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-8 text-center">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mb-3">
+          Đã hoàn thành &amp; lưu vào bảng điểm
+        </div>
+        <h2 class="text-2xl font-extrabold text-slate-900 mb-1" id="resultTitle">Kết quả bài thi</h2>
+        <p class="text-sm text-slate-600 mb-5" id="resultSub"></p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto mb-6">
+          <div class="rounded-xl bg-indigo-50 border border-indigo-100 p-3.5">
+            <div class="text-2xl font-extrabold text-indigo-700" id="resScore10">0.0</div>
+            <div class="text-xs text-indigo-600 font-medium">Thang điểm 10</div>
+          </div>
+          <div class="rounded-xl bg-emerald-50 border border-emerald-100 p-3.5">
+            <div class="text-2xl font-extrabold text-emerald-700" id="resCorrect">0/30</div>
+            <div class="text-xs text-emerald-600 font-medium">Số câu đúng</div>
+          </div>
+          <div class="rounded-xl bg-amber-50 border border-amber-100 p-3.5">
+            <div class="text-2xl font-extrabold text-amber-700" id="resTimeout">0</div>
+            <div class="text-xs text-amber-600 font-medium">Hết giờ</div>
+          </div>
+          <div class="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
+            <div class="text-2xl font-extrabold text-slate-800" id="resTime">0s</div>
+            <div class="text-xs text-slate-500 font-medium">Tổng thời gian</div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <button id="btnRetakeSame" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition">
+            Làm lại (cùng người)
+          </button>
+          <button id="btnNewPerson" type="button" class="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition">
+            Người tiếp theo / Đổi nhóm
+          </button>
+          <button id="btnViewBoardFromResult" type="button" class="px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold transition">
+            Xem bảng điểm đã thi
+          </button>
+        </div>
+      </div>
+
+      <!-- Detailed Answer Review -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+        <h3 class="text-base font-bold text-slate-900 mb-4">Chi tiết đáp án 30 câu</h3>
+        <div id="reviewList" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- View 4: Score History / Leaderboard -->
+    <section id="viewHistory" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Bảng ghi nhớ điểm đã thi</h2>
+          <p class="text-xs sm:text-sm text-slate-500">Lưu tự động trên trình duyệt theo từng lượt làm bài.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnSortHistory" type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition">
+            Sắp xếp: Mới nhất
+          </button>
+          <button id="btnAskClearHistory" type="button" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-xs font-semibold text-rose-700 transition">
+            Xóa lịch sử
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <input
+          id="historyFilterInput"
+          type="text"
+          placeholder="Lọc theo tên nhóm hoặc tên người làm..."
+          class="w-full sm:w-80 px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-xs uppercase text-slate-500 bg-slate-50">
+              <th class="py-2.5 px-3 font-semibold">#</th>
+              <th class="py-2.5 px-3 font-semibold">Nhóm</th>
+              <th class="py-2.5 px-3 font-semibold">Người làm</th>
+              <th class="py-2.5 px-3 font-semibold text-right">Đúng</th>
+              <th class="py-2.5 px-3 font-semibold text-right">Điểm (/10)</th>
+              <th class="py-2.5 px-3 font-semibold text-right">Hết giờ</th>
+              <th class="py-2.5 px-3 font-semibold text-right">Thời gian</th>
+              <th class="py-2.5 px-3 font-semibold">Ngày giờ</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="historyEmptyState" class="hidden py-10 text-center text-sm text-slate-500">
+        Chưa có lượt thi nào được lưu. Hãy nhập tên nhóm và tên người làm để bắt đầu!
+      </div>
+    </section>
+
+    <!-- Clear History Confirmation Modal -->
+    <div id="clearModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl border border-slate-200">
+        <h3 class="text-base font-bold text-slate-900 mb-1.5">Xác nhận xóa lịch sử điểm?</h3>
+        <p class="text-sm text-slate-600 mb-5">Toàn bộ điểm đã ghi nhớ trên trình duyệt này sẽ bị xóa và không thể khôi phục.</p>
+        <div class="flex justify-end gap-2">
+          <button id="btnCancelClear" type="button" class="px-3.5 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            Hủy
+          </button>
+          <button id="btnConfirmClear" type="button" class="px-3.5 py-2 rounded-lg bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700">
+            Xóa tất cả
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const QUESTIONS = [
+      // Câu 1-8: Nhận biết nhanh
+      {
+        id: 1,
+        cat: "Phần 1 · Nhận biết nhanh",
+        q: "Cảm biến biến đổi đại lượng cần đo thành tín hiệu có tính gì?",
+        options: ["Cơ học", "Điện", "Hóa học", "Sinh học"],
+        ans: 1,
+        exp: "Sơ đồ khái quát đặt đại lượng cần đo ở đầu vào và đại lượng có tính điện ở đầu ra. [Slide 7]"
+      },
+      {
+        id: 2,
+        cat: "Phần 1 · Nhận biết nhanh",
+        q: "Đặc trưng nào biểu diễn quan hệ giữa đầu vào và đầu ra?",
+        options: ["Độ nhanh", "Cấp chính xác", "Đường cong chuẩn", "Giới hạn sử dụng"],
+        ans: 2,
+        exp: "Đường cong chuẩn biểu diễn sự phụ thuộc của đáp ứng đầu ra vào đại lượng đo. [Slide 18]"
+      },
+      {
+        id: 3,
+        cat: "Phần 1 · Nhận biết nhanh",
+        q: "Độ nhạy tĩnh so sánh hai đại lượng nào?",
+        options: ["Hai giá trị đầu vào", "Hai giá trị đầu ra", "Hai giá trị sai số", "Hai biến thiên vào–ra"],
+        ans: 3,
+        exp: "Độ nhạy tĩnh lấy biến thiên đầu ra chia cho biến thiên đầu vào. [Slide 24]"
+      },
+      {
+        id: 4,
+        cat: "Phần 1 · Nhận biết nhanh",
+        q: "Khả năng theo kịp sự thay đổi đầu vào gọi là gì?",
+        options: ["Độ nhanh", "Độ tuyến tính", "Độ chính xác", "Độ nhạy tĩnh"],
+        ans: 0,
+        exp: "Độ nhanh nói đến khả năng đáp ứng theo thời gian. [Slide 39]"
+      },
+      {
+        id: 5,
+        cat: "Phần 1 · Nhận biết nhanh",
+        q: "Dấu và biên độ đều không xác định là sai số nào?",
+        options: ["Hệ thống", "Ngẫu nhiên", "Tuyến tính", "Quy dẫn"],
+        ans: 1,
+        exp: "Dấu và biên độ không xác định là đặc điểm của sai số ngẫu nhiên. [Slide 33]"
+      },
+      {
+        id: 6,
+        cat: "Phần 1 · Nhận biết nhanh",
+        q: "Điện trở thay đổi theo vị trí thuộc loại nào?",
+        options: ["Quang trở", "Điện trở nhiệt", "Biến trở vị trí", "Điện trở biến dạng"],
+        ans: 2,
+        exp: "Biến trở vị trí thuộc nhóm cảm biến điện trở dùng để nhận biết sự thay đổi vị trí. [Slide 54]"
+      },
+      {
+        id: 7,
+        cat: "Phần 1 · Nhận biết nhanh",
+        q: "Ánh sáng làm thay đổi điện trở của phần tử nào?",
+        options: ["Quang trở", "Biến trở vị trí", "Điện trở nhiệt", "Điện trở biến dạng"],
+        ans: 0,
+        exp: "Trong bảng phân loại, quang trở là phần tử điện trở nhạy với ánh sáng. [Slide 54]"
+      },
+      {
+        id: 8,
+        cat: "Phần 1 · Nhận biết nhanh",
+        q: "Hiệu ứng Hall thuộc nguyên lý chế tạo cảm biến nào?",
+        options: ["Thụ động", "Điện dung", "Điện trở", "Tích cực"],
+        ans: 3,
+        exp: "Bài giảng xếp hiệu ứng Hall vào nhóm nguyên lý chế tạo cảm biến tích cực. [Slide 50]"
+      },
+      // Câu 9-15: Phân biệt từ khóa
+      {
+        id: 9,
+        cat: "Phần 2 · Phân biệt từ khóa",
+        q: "Trong ký hiệu đường chuẩn s = F(m), s là gì?",
+        options: ["Đại lượng đo", "Đáp ứng đầu ra", "Độ nhạy tĩnh", "Sai số đo"],
+        ans: 1,
+        exp: "s là đáp ứng đầu ra, còn m là đại lượng đo ở đầu vào. [Slide 19]"
+      },
+      {
+        id: 10,
+        cat: "Phần 2 · Phân biệt từ khóa",
+        q: "Phép chuẩn cảm biến nhằm xác lập quan hệ nào?",
+        options: ["Đầu ra – đại lượng đo", "Sai số – độ nhanh", "Độ nhạy – độ nhanh", "Sai số – thời gian"],
+        ans: 0,
+        exp: "Phép chuẩn xác lập quan hệ giữa các giá trị đầu ra và các giá trị đại lượng đo tương ứng. [Slide 20]"
+      },
+      {
+        id: 11,
+        cat: "Phần 2 · Phân biệt từ khóa",
+        q: "Chỉ chịu tác động của một đại lượng đo: chọn cách chuẩn nào?",
+        options: ["Chuẩn nhiều lần", "Đánh giá sai số", "Chuẩn đơn giản", "Đánh giá độ nhanh"],
+        ans: 2,
+        exp: "Điều kiện 'một đại lượng đo duy nhất' gắn với phương pháp chuẩn đơn giản. [Slide 21]"
+      },
+      {
+        id: 12,
+        cat: "Phần 2 · Phân biệt từ khóa",
+        q: "Với cảm biến phi tuyến, độ nhạy tĩnh phụ thuộc gì?",
+        options: ["Số lần chuẩn", "Tên đại lượng", "Cách ký hiệu", "Điểm làm việc"],
+        ans: 3,
+        exp: "Độ nhạy của cảm biến phi tuyến có thể khác nhau tại các điểm trên đường chuẩn. [Slide 25]"
+      },
+      {
+        id: 13,
+        cat: "Phần 2 · Phân biệt từ khóa",
+        q: "Trong chế độ tĩnh, tuyến tính nghĩa là độ nhạy thế nào?",
+        options: ["Luôn bằng không", "Tăng theo đầu vào", "Không phụ thuộc giá trị đo", "Giảm theo đầu vào"],
+        ans: 2,
+        exp: "Từ khóa là không phụ thuộc; độ nhạy vẫn có thể khác không. [Slide 28]"
+      },
+      {
+        id: 14,
+        cat: "Phần 2 · Phân biệt từ khóa",
+        q: "Đường thẳng tốt nhất được xây dựng từ đâu?",
+        options: ["Số liệu chuẩn thực nghiệm", "Giới hạn không phá hủy", "Thời gian hồi đáp", "Cấp chính xác"],
+        ans: 0,
+        exp: "Đường thẳng tốt nhất được xây dựng từ các số liệu thực nghiệm khi chuẩn cảm biến. [Slide 29]"
+      },
+      {
+        id: 15,
+        cat: "Phần 2 · Phân biệt từ khóa",
+        q: "Độ lệch tuyến tính xét độ lệch nào so với đường thẳng tốt nhất?",
+        options: ["Nhỏ nhất", "Cực đại", "Trung bình", "Ban đầu"],
+        ans: 1,
+        exp: "Slide dùng độ lệch cực đại giữa đường cong chuẩn và đường thẳng tốt nhất. [Slide 30]"
+      },
+      // Câu 16-20: Dễ nhầm nếu đọc lướt
+      {
+        id: 16,
+        cat: "Phần 3 · Dễ nhầm nếu đọc lướt",
+        q: "Tỷ số giữa giá trị đầu ra và đầu vào tại điểm xét là gì?",
+        options: ["Độ nhạy tĩnh", "Độ lệch tuyến tính", "Hệ số chuyển đổi tĩnh", "Sai số quy dẫn"],
+        ans: 2,
+        exp: "Hệ số chuyển đổi tĩnh dùng giá trị đầu ra và đầu vào; độ nhạy tĩnh dùng biến thiên của chúng. [Slide 24, 26]"
+      },
+      {
+        id: 17,
+        cat: "Phần 3 · Dễ nhầm nếu đọc lướt",
+        q: "Sai số hệ thống có đặc điểm nào?",
+        options: ["Luôn mang dấu dương", "Luôn mang dấu âm", "Biên độ luôn bằng không", "Có thể biết quy luật"],
+        ans: 3,
+        exp: "Giá trị và quy luật của sai số hệ thống có thể biết trước, không ấn định dấu của sai số. [Slide 32]"
+      },
+      {
+        id: 18,
+        cat: "Phần 3 · Dễ nhầm nếu đọc lướt",
+        q: "Độ chính xác được đánh giá qua cặp đặc tính nào?",
+        options: ["Đúng đắn – trung thực", "Tuyến tính – độ nhanh", "Đúng đắn – độ nhạy", "Trung thực – độ nhanh"],
+        ans: 0,
+        exp: "Hai thuật ngữ bài giảng dùng là tính đúng đắn và tính trung thực. [Slide 36]"
+      },
+      {
+        id: 19,
+        cat: "Phần 3 · Dễ nhầm nếu đọc lướt",
+        q: "Cấp chính xác của cảm biến được xác định theo sai số nào?",
+        options: ["Ngẫu nhiên", "Hệ thống", "Quy dẫn", "Tuyến tính"],
+        ans: 2,
+        exp: "Từ khóa gắn với cấp chính xác là sai số quy dẫn. [Slide 38]"
+      },
+      {
+        id: 20,
+        cat: "Phần 3 · Dễ nhầm nếu đọc lướt",
+        q: "Các mục sau đều là tên hiệu ứng của cảm biến tích cực, NGOẠI TRỪ?",
+        options: ["Nhiệt điện", "Áp điện", "Hỏa điện", "Điện trở nhiệt"],
+        ans: 3,
+        exp: "Nhiệt điện, hỏa điện và áp điện thuộc cảm biến tích cực; điện trở nhiệt là cảm biến điện trở. [Slide 44–47, 54]"
+      },
+      // Câu 21-30: Mở rộng Chương 6
+      {
+        id: 21,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Cảm biến thụ động thường đòi hỏi điều kiện gì để hoạt động?",
+        options: [
+          "Tự phát sinh điện áp không cần nguồn ngoài",
+          "Cần nguồn kích thích bên ngoài (dòng hoặc áp)",
+          "Chỉ đo được đại lượng nhiệt độ",
+          "Không thể nối với mạch cầu đo"
+        ],
+        ans: 1,
+        exp: "Cảm biến thụ động thay đổi thông số (R, L, C) nên cần nguồn kích thích bên ngoài."
+      },
+      {
+        id: 22,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Cảm biến nhiệt điện (cặp nhiệt điện – thermocouple) hoạt động dựa trên hiệu ứng nào?",
+        options: ["Hiệu ứng Seebeck", "Hiệu ứng Hall", "Hiệu ứng áp điện", "Hiệu ứng quang dẫn"],
+        ans: 0,
+        exp: "Cặp nhiệt điện tạo suất điện động khi có chênh lệch nhiệt độ giữa hai mối nối theo hiệu ứng Seebeck."
+      },
+      {
+        id: 23,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Cảm biến điện dung thường đo đại lượng đầu vào thông qua sự thay đổi yếu tố nào?",
+        options: [
+          "Điện trở suất",
+          "Khoảng cách bản cực, diện tích đối diện hoặc hằng số điện môi",
+          "Từ thông xuyên qua cuộn dây",
+          "Tần số ánh sáng tới"
+        ],
+        ans: 1,
+        exp: "Điện dung phụ thuộc vào hằng số điện môi, diện tích đối diện và khoảng cách giữa hai bản cực."
+      },
+      {
+        id: 24,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Trong cảm biến điện trở nhiệt kim loại (RTD, ví dụ Pt100), khi nhiệt độ tăng thì điện trở thay đổi thế nào?",
+        options: ["Giảm tuyến tính", "Tăng theo nhiệt độ", "Không đổi", "Bằng không tại 100 °C"],
+        ans: 1,
+        exp: "Kim loại có hệ số nhiệt điện trở dương, nên điện trở tăng khi nhiệt độ tăng (Pt100 = 100 Ω tại 0 °C)."
+      },
+      {
+        id: 25,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Cảm biến áp điện (piezoelectric) phát sinh điện tích trên bề mặt khi chịu tác động gì?",
+        options: [
+          "Thay đổi từ trường",
+          "Biến dạng cơ học (lực nén, kéo, rung)",
+          "Chiếu tia hồng ngoại",
+          "Ngâm trong dung dịch điện phân"
+        ],
+        ans: 1,
+        exp: "Hiệu ứng áp điện biến đổi lực hoặc biến dạng cơ học trực tiếp thành điện tích/điện áp."
+      },
+      {
+        id: 26,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Cảm biến hỏa điện (pyroelectric) nhạy với đại lượng nào?",
+        options: [
+          "Độ ẩm tương đối",
+          "Tốc độ biến thiên nhiệt độ (bức xạ nhiệt)",
+          "Áp suất thủy tĩnh",
+          "Nồng độ khí CO₂"
+        ],
+        ans: 1,
+        exp: "Hiệu ứng hỏa điện tạo điện tích khi tinh thể chịu sự thay đổi nhiệt độ theo thời gian."
+      },
+      {
+        id: 27,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Thời gian hồi đáp (response time) của cảm biến dùng để đánh giá đặc trưng nào?",
+        options: ["Độ nhanh", "Độ tuyến tính", "Độ phân giải", "Độ lặp lại"],
+        ans: 0,
+        exp: "Thời gian hồi đáp là thông số định lượng cho độ nhanh của cảm biến."
+      },
+      {
+        id: 28,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Mạch cầu Wheatstone thường được dùng với nhóm cảm biến nào để chuyển biến thiên trở kháng thành điện áp?",
+        options: [
+          "Cảm biến tích cực",
+          "Cảm biến điện trở (như strain gauge, RTD)",
+          "Cặp nhiệt điện",
+          "Cảm biến áp điện"
+        ],
+        ans: 1,
+        exp: "Mạch cầu Wheatstone chuyển đổi sự thay đổi nhỏ của điện trở thành tín hiệu điện áp dễ khuếch đại."
+      },
+      {
+        id: 29,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Giới hạn không phá hủy (non-destructive limit) của cảm biến là gì?",
+        options: [
+          "Giá trị nhỏ nhất cảm biến phát hiện được",
+          "Ngưỡng đại lượng đo tối đa mà cảm biến chịu được không bị hỏng vĩnh viễn",
+          "Sai số cho phép lớn nhất ở chế độ tĩnh",
+          "Thời gian ngắn nhất giữa hai lần đo"
+        ],
+        ans: 1,
+        exp: "Vượt quá giới hạn không phá hủy sẽ làm cảm biến hư hỏng hoặc biến đổi đặc tính không hồi phục."
+      },
+      {
+        id: 30,
+        cat: "Phần 4 · Nguyên lý & Đặc trưng cảm biến",
+        q: "Đại lượng không phải đại lượng cần đo nhưng vẫn làm sai lệch kết quả cảm biến gọi là gì?",
+        options: ["Đại lượng chuẩn", "Đại lượng ảnh hưởng (nhiễu)", "Hệ số chuyển đổi", "Đáp ứng đầu ra"],
+        ans: 1,
+        exp: "Các đại lượng ảnh hưởng (nhiễu môi trường như nhiệt độ, độ ẩm) tác động ngoài ý muốn gây sai số đo."
+      }
+    ];
+
+    // Dán link Web App của Google Apps Script vào giữa dấu ngoặc kép bên dưới:
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweD_e9x1ZngDhrIKdk9MinBBcwkAmPrCMHayg_UTAPiS1CLKAVa1aSNEamOWa1wW1zrw/exec";
+    const STORAGE_KEY = "cam_bien_quiz_history_v1";
+    const SECONDS_PER_QUESTION = 10;
+    const LETTERS = ["A", "B", "C", "D"];
+
+    const state = {
+      groupName: "",
+      userName: "",
+      currentIdx: 0,
+      answers: [], // { chosen: number|null, timeout: boolean, elapsed: number }
+      score: 0,
+      timeLeft: SECONDS_PER_QUESTION,
+      timerId: null,
+      autoAdvanceId: null,
+      locked: false,
+      quizStartTime: 0,
+      sortMode: "latest" // "latest" | "highest"
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveHistory(records) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      } catch (e) {
+        // Ignore storage errors in restricted environments
+      }
+    }
+
+    function updateHistoryBadge() {
+      $("historyCountBadge").textContent = String(loadHistory().length);
+    }
+
+    function clearTimers() {
+      if (state.timerId !== null) {
+        clearInterval(state.timerId);
+        state.timerId = null;
+      }
+      if (state.autoAdvanceId !== null) {
+        clearTimeout(state.autoAdvanceId);
+        state.autoAdvanceId = null;
+      }
+    }
+
+    function showView(viewId) {
+      ["viewEntry", "viewQuiz", "viewResult", "viewHistory"].forEach((id) => {
+        $(id).classList.toggle("hidden", id !== viewId);
+      });
+    }
+
+    function startQuiz(groupName, userName) {
+      clearTimers();
+      state.groupName = groupName;
+      state.userName = userName;
+      state.currentIdx = 0;
+      state.answers = [];
+      state.score = 0;
+      state.locked = false;
+      state.quizStartTime = Date.now();
+
+      $("quizGroupTag").textContent = `Nhóm: ${groupName}`;
+      $("quizNameTag").textContent = `Người làm: ${userName}`;
+      $("liveScoreText").textContent = "0";
+      showView("viewQuiz");
+      renderQuestion();
+    }
+
+    function updateTimerUI() {
+      const pill = $("timerPill");
+      const bar = $("timerBar");
+      const pct = Math.max(0, (state.timeLeft / SECONDS_PER_QUESTION) * 100);
+      pill.textContent = `${state.timeLeft}s`;
+      bar.style.width = `${pct}%`;
+
+      pill.className = "px-3 py-1 rounded-full font-extrabold text-sm tabular-nums border ";
+      bar.className = "timer-bar h-full rounded-full ";
+
+      if (state.timeLeft <= 3) {
+        pill.className += "bg-rose-50 border-rose-200 text-rose-700";
+        bar.className += "bg-rose-500";
+      } else if (state.timeLeft <= 6) {
+        pill.className += "bg-amber-50 border-amber-200 text-amber-700";
+        bar.className += "bg-amber-500";
+      } else {
+        pill.className += "bg-emerald-50 border-emerald-200 text-emerald-700";
+        bar.className += "bg-emerald-500";
+      }
+    }
+
+    function renderQuestion() {
+      clearTimers();
+      state.locked = false;
+      state.timeLeft = SECONDS_PER_QUESTION;
+
+      const item = QUESTIONS[state.currentIdx];
+      $("quizProgressText").textContent = `Câu ${state.currentIdx + 1} / ${QUESTIONS.length}`;
+      $("questionCategory").textContent = item.cat;
+      $("questionText").textContent = `Câu ${item.id}. ${item.q}`;
+      $("feedbackBox").classList.add("hidden");
+      $("btnNextQuestion").classList.add("hidden");
+
+      const container = $("optionsContainer");
+      container.innerHTML = "";
+      item.options.forEach((optText, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.dataset.idx = String(idx);
+        btn.className =
+          "w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 transition flex items-start gap-3 cursor-pointer";
+        btn.innerHTML = `
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm flex items-center justify-center">${LETTERS[idx]}</span>
+          <span class="text-sm sm:text-base text-slate-800 pt-0.5">${optText}</span>
+        `;
+        btn.addEventListener("click", () => handleAnswer(idx, false));
+        container.appendChild(btn);
+      });
+
+      updateTimerUI();
+      state.timerId = setInterval(() => {
+        state.timeLeft -= 1;
+        updateTimerUI();
+        if (state.timeLeft <= 0) {
+          clearTimers();
+          handleAnswer(null, true);
+        }
+      }, 1000);
+    }
+
+    function handleAnswer(chosenIdx, isTimeout) {
+      if (state.locked) return;
+      state.locked = true;
+      clearTimers();
+
+      const item = QUESTIONS[state.currentIdx];
+      const isCorrect = !isTimeout && chosenIdx === item.ans;
+      if (isCorrect) {
+        state.score += 1;
+        $("liveScoreText").textContent = String(state.score);
+      }
+
+      state.answers.push({
+        chosen: chosenIdx,
+        timeout: isTimeout,
+        elapsed: SECONDS_PER_QUESTION - Math.max(0, state.timeLeft)
+      });
+
+      const buttons = $("optionsContainer").querySelectorAll("button");
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        btn.classList.remove("hover:bg-indigo-50", "hover:border-indigo-300", "cursor-pointer");
+        const badge = btn.querySelector("span:first-child");
+        if (idx === item.ans) {
+          btn.classList.add("bg-emerald-50", "border-emerald-400");
+          badge.className = "w-7 h-7 shrink-0 rounded-lg bg-emerald-600 text-white font-bold text-sm flex items-center justify-center";
+        } else if (!isTimeout && idx === chosenIdx && chosenIdx !== item.ans) {
+          btn.classList.add("bg-rose-50", "border-rose-400");
+          badge.className = "w-7 h-7 shrink-0 rounded-lg bg-rose-600 text-white font-bold text-sm flex items-center justify-center";
+        } else {
+          btn.classList.add("opacity-65");
+        }
+      });
+
+      const fb = $("feedbackBox");
+      fb.classList.remove("hidden", "bg-emerald-50", "border-emerald-200", "text-emerald-800", "bg-rose-50", "border-rose-200", "text-rose-800", "bg-amber-50", "border-amber-200", "text-amber-800");
+      if (isTimeout) {
+        fb.classList.add("bg-amber-50", "border-amber-200", "text-amber-800");
+        fb.innerHTML = `<strong>Hết giờ (10s)!</strong> Đáp án đúng là <strong>${LETTERS[item.ans]}</strong>. ${item.exp}`;
+      } else if (isCorrect) {
+        fb.classList.add("bg-emerald-50", "border-emerald-200", "text-emerald-800");
+        fb.innerHTML = `<strong>Chính xác!</strong> ${item.exp}`;
+      } else {
+        fb.classList.add("bg-rose-50", "border-rose-200", "text-rose-800");
+        fb.innerHTML = `<strong>Chưa đúng.</strong> Đáp án đúng là <strong>${LETTERS[item.ans]}</strong>. ${item.exp}`;
+      }
+
+      const nextBtn = $("btnNextQuestion");
+      nextBtn.textContent = state.currentIdx === QUESTIONS.length - 1 ? "Xem kết quả →" : "Câu tiếp theo →";
+      nextBtn.classList.remove("hidden");
+
+      // Tự động chuyển câu sau 1.4s để giữ nhịp nhanh
+      state.autoAdvanceId = setTimeout(() => {
+        advanceQuestion();
+      }, 1400);
+    }
+
+    function advanceQuestion() {
+      clearTimers();
+      if (state.currentIdx < QUESTIONS.length - 1) {
+        state.currentIdx += 1;
+        renderQuestion();
+      } else {
+        finishQuiz();
+      }
+    }
+
+    function finishQuiz() {
+      clearTimers();
+      const totalSec = Math.max(1, Math.round((Date.now() - state.quizStartTime) / 1000));
+      const timeoutCount = state.answers.filter((a) => a.timeout).length;
+      const score10 = Number(((state.score / QUESTIONS.length) * 10).toFixed(2));
+      const nowStr = new Date().toLocaleString("vi-VN", {
+        hour12: false,
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      const history = loadHistory();
+      history.unshift({
+        id: Date.now(),
+        group: state.groupName,
+        name: state.userName,
+        correct: state.score,
+        total: QUESTIONS.length,
+        score10,
+        timeoutCount,
+        totalSec,
+        dateStr: nowStr
+      });
+      saveHistory(history);
+      updateHistoryBadge();
+
+      $("resultTitle").textContent = `${state.userName} (${state.groupName})`;
+      $("resultSub").textContent = `Hoàn thành lúc ${nowStr}`;
+      $("resScore10").textContent = score10.toFixed(1);
+      $("resCorrect").textContent = `${state.score}/${QUESTIONS.length}`;
+      $("resTimeout").textContent = String(timeoutCount);
+      $("resTime").textContent = `${totalSec}s`;
+
+      const reviewList = $("reviewList");
+      reviewList.innerHTML = "";
+      QUESTIONS.forEach((item, idx) => {
+        const ansObj = state.answers[idx] || { chosen: null, timeout: true };
+        const isCorrect = !ansObj.timeout && ansObj.chosen === item.ans;
+        const badgeClass = ansObj.timeout
+          ? "bg-amber-100 text-amber-800"
+          : isCorrect
+          ? "bg-emerald-100 text-emerald-800"
+          : "bg-rose-100 text-rose-800";
+        const statusText = ansObj.timeout
+          ? "Hết giờ"
+          : isCorrect
+          ? "Đúng"
+          : `Sai (chọn ${LETTERS[ansObj.chosen]})`;
+
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-slate-200 p-3.5 text-sm";
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <span class="font-bold text-slate-900">Câu ${item.id}. ${item.q}</span>
+            <span class="px-2 py-0.5 rounded-md text-xs font-bold ${badgeClass}">${statusText}</span>
+          </div>
+          <div class="text-xs text-slate-600">
+            Đáp án đúng: <strong class="text-emerald-700">${LETTERS[item.ans]}. ${item.options[item.ans]}</strong> — ${item.exp}
+          </div>
+        `;
+        reviewList.appendChild(card);
+      });
+
+      showView("viewResult");
+    }
+
+    function renderHistory() {
+      const filterText = $("historyFilterInput").value.trim().toLowerCase();
+      let records = loadHistory();
+      if (filterText) {
+        records = records.filter(
+          (r) =>
+            r.group.toLowerCase().includes(filterText) ||
+            r.name.toLowerCase().includes(filterText)
+        );
+      }
+      if (state.sortMode === "highest") {
+        records = [...records].sort((a, b) => b.score10 - a.score10 || a.totalSec - b.totalSec);
+      }
+
+      const tbody = $("historyTableBody");
+      tbody.innerHTML = "";
+      if (records.length === 0) {
+        $("historyEmptyState").classList.remove("hidden");
+        return;
+      }
+      $("historyEmptyState").classList.add("hidden");
+
+      records.forEach((rec, idx) => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-slate-500 font-medium">${idx + 1}</td>
+          <td class="py-2.5 px-3 font-semibold text-slate-800"></td>
+          <td class="py-2.5 px-3 text-slate-800"></td>
+          <td class="py-2.5 px-3 text-right font-semibold text-slate-700">${rec.correct}/${rec.total}</td>
+          <td class="py-2.5 px-3 text-right font-extrabold text-indigo-700">${Number(rec.score10).toFixed(1)}</td>
+          <td class="py-2.5 px-3 text-right text-amber-700">${rec.timeoutCount}</td>
+          <td class="py-2.5 px-3 text-right text-slate-600">${rec.totalSec}s</td>
+          <td class="py-2.5 px-3 text-xs text-slate-500">${rec.dateStr}</td>
+        `;
+        tr.children[1].textContent = rec.group;
+        tr.children[2].textContent = rec.name;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Event bindings
+    $("entryForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const groupName = $("inputGroup").value.trim();
+      const userName = $("inputName").value.trim();
+      const errBox = $("entryError");
+      if (!groupName || !userName) {
+        errBox.textContent = "Vui lòng nhập đầy đủ Tên nhóm và Tên người làm trước khi bắt đầu.";
+        errBox.classList.remove("hidden");
+        return;
+      }
+      errBox.classList.add("hidden");
+      startQuiz(groupName, userName);
+    });
+
+    $("btnNextQuestion").addEventListener("click", advanceQuestion);
+
+    $("btnNavHome").addEventListener("click", () => {
+      clearTimers();
+      showView("viewEntry");
+    });
+
+    $("btnNavHistory").addEventListener("click", () => {
+      clearTimers();
+      renderHistory();
+      showView("viewHistory");
+    });
+
+    $("btnViewBoardFromResult").addEventListener("click", () => {
+      renderHistory();
+      showView("viewHistory");
+    });
+
+    $("btnRetakeSame").addEventListener("click", () => {
+      startQuiz(state.groupName, state.userName);
+    });
+
+    $("btnNewPerson").addEventListener("click", () => {
+      $("inputName").value = "";
+      showView("viewEntry");
+      $("inputName").focus();
+    });
+
+    $("btnSortHistory").addEventListener("click", () => {
+      state.sortMode = state.sortMode === "latest" ? "highest" : "latest";
+      $("btnSortHistory").textContent =
+        state.sortMode === "latest" ? "Sắp xếp: Mới nhất" : "Sắp xếp: Điểm cao nhất";
+      renderHistory();
+    });
+
+    $("historyFilterInput").addEventListener("input", renderHistory);
+
+    $("btnAskClearHistory").addEventListener("click", () => {
+      $("clearModal").classList.remove("hidden");
+    });
+
+    $("btnCancelClear").addEventListener("click", () => {
+      $("clearModal").classList.add("hidden");
+    });
+
+    $("btnConfirmClear").addEventListener("click", () => {
+      saveHistory([]);
+      updateHistoryBadge();
+      renderHistory();
+      $("clearModal").classList.add("hidden");
+    });
+
+    async function sendToGoogleSheet(record) {
+      if (!GOOGLE_SCRIPT_URL || !GOOGLE_SCRIPT_URL.startsWith("https://")) return;
+      try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(record)
+        });
+      } catch (e) {}
+    }
+
+    const _origFinishQuiz = finishQuiz;
+    finishQuiz = function () {
+      _origFinishQuiz();
+      const latest = loadHistory()[0];
+      if (latest) {
+        sendToGoogleSheet(latest);
+      }
+    };
+
+    updateHistoryBadge();
+  </script>
+</body>
+</html>
